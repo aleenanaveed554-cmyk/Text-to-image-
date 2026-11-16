@@ -1,157 +1,128 @@
-import io
+
 import streamlit as st
-from google import genai
-from google.genai import types
+import requests
+import base64
+import io
+from PIL import Image
 
-
-# =========================================================
+# =====================================================
 # PAGE CONFIGURATION
-# =========================================================
+# =====================================================
 
 st.set_page_config(
-    page_title="PixelForge AI",
+    page_title="PixelForge AI | Image Generator",
     page_icon="🎨",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# =====================================================
+# PROFESSIONAL UI
+# =====================================================
 
-# =========================================================
-# CUSTOM CSS
-# =========================================================
+st.markdown("""
+<style>
+.stApp {
+    background: #0b0b14;
+    color: #ffffff;
+}
 
-st.markdown(
-    """
-    <style>
+.block-container {
+    max-width: 1250px;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
 
-    /* Main page */
-    .stApp {
-        background:
-            radial-gradient(circle at top left, #17172b 0%, #0b0b12 40%, #07070b 100%);
-        color: white;
-    }
+.hero {
+    text-align: center;
+    padding: 25px 10px 35px;
+}
 
-    /* Remove default top padding */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 4rem;
-        max-width: 1200px;
-    }
+.hero h1 {
+    font-size: 48px;
+    font-weight: 850;
+    background: linear-gradient(90deg,#ffffff,#a78bfa,#60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 
-    /* Header */
-    .hero {
-        text-align: center;
-        padding: 30px 10px 20px 10px;
-    }
+.hero p {
+    color: #a1a1b5;
+    font-size: 17px;
+}
 
-    .hero-title {
-        font-size: 48px;
-        font-weight: 800;
-        letter-spacing: -1px;
-        margin-bottom: 8px;
-        background: linear-gradient(
-            90deg,
-            #ffffff,
-            #b9a7ff,
-            #8fdcff
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
+section[data-testid="stSidebar"] {
+    background: #11111d;
+    border-right: 1px solid #28283a;
+}
 
-    .hero-subtitle {
-        color: #a9a9b8;
-        font-size: 18px;
-        margin-bottom: 10px;
-    }
+.panel {
+    background: #151522;
+    border: 1px solid #29293b;
+    border-radius: 18px;
+    padding: 22px;
+    margin-bottom: 15px;
+}
 
-    /* Cards */
-    .card {
-        background: rgba(20, 20, 31, 0.88);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 18px;
-        padding: 24px;
-        margin-bottom: 20px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-    }
+.panel-title {
+    font-size: 21px;
+    font-weight: 750;
+    margin-bottom: 15px;
+    color: #ffffff;
+}
 
-    .card-title {
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 12px;
-    }
+.stTextArea textarea {
+    background: #10101b !important;
+    color: white !important;
+    border: 1px solid #343449 !important;
+    border-radius: 12px !important;
+}
 
-    .small-text {
-        color: #9999aa;
-        font-size: 14px;
-    }
+.stButton > button {
+    width: 100%;
+    height: 52px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(90deg,#7c3aed,#2563eb);
+    color: white;
+    font-weight: 750;
+    font-size: 16px;
+}
 
-    /* Text area */
-    textarea {
-        background-color: #11111a !important;
-        color: #ffffff !important;
-        border-radius: 12px !important;
-        border: 1px solid #303040 !important;
-    }
+.stButton > button:hover {
+    border: 1px solid #a78bfa;
+    color: white;
+}
 
-    /* Buttons */
-    .stButton > button {
-        width: 100%;
-        height: 52px;
-        border-radius: 12px;
-        border: none;
-        font-size: 16px;
-        font-weight: 700;
-        background: linear-gradient(
-            90deg,
-            #7c5cff,
-            #4ca9ff
-        );
-        color: white;
-        transition: 0.2s ease;
-    }
+.stDownloadButton > button {
+    width: 100%;
+    height: 48px;
+    border-radius: 11px;
+    font-weight: 700;
+}
 
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(100, 120, 255, 0.30);
-    }
+[data-testid="stImage"] img {
+    border-radius: 15px;
+}
 
-    /* Download button */
-    .stDownloadButton > button {
-        width: 100%;
-        height: 48px;
-        border-radius: 10px;
-        font-weight: 600;
-    }
+.hint {
+    color: #9999ad;
+    font-size: 13px;
+}
 
-    /* Sidebar */
-    section[data-testid="stSidebar"] {
-        background: #0d0d14;
-        border-right: 1px solid #252532;
-    }
-
-    /* Image */
-    [data-testid="stImage"] img {
-        border-radius: 16px;
-    }
-
-    /* Footer */
-    .footer {
-        text-align: center;
-        color: #777785;
-        font-size: 13px;
-        padding-top: 30px;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+.footer {
+    text-align: center;
+    color: #77778d;
+    padding-top: 35px;
+    font-size: 13px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
-# =========================================================
+# =====================================================
 # SESSION STATE
-# =========================================================
+# =====================================================
 
 if "generated_image" not in st.session_state:
     st.session_state.generated_image = None
@@ -160,142 +131,102 @@ if "last_prompt" not in st.session_state:
     st.session_state.last_prompt = ""
 
 
-# =========================================================
+# =====================================================
 # SIDEBAR
-# =========================================================
+# =====================================================
 
 with st.sidebar:
 
     st.markdown("## 🎨 PixelForge AI")
 
-    st.markdown(
-        """
-        <div class="small-text">
-        Transform your ideas into AI-generated images.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.caption("AI-powered Text to Image Generator")
 
     st.divider()
 
     st.markdown("### ⚙️ Generation Settings")
 
-    aspect_ratio = st.selectbox(
-        "Aspect Ratio",
-        options=[
-            "1:1",
-            "16:9",
-            "9:16",
-            "4:3",
-            "3:4"
-        ],
-        index=0
-    )
-
-    image_size = st.selectbox(
-        "Image Resolution",
-        options=[
-            "1K",
-            "2K"
-        ],
-        index=0
+    steps = st.slider(
+        "Generation Steps",
+        min_value=1,
+        max_value=8,
+        value=4,
+        help="Higher steps may improve quality but can use more resources."
     )
 
     st.divider()
 
-    st.markdown("### 💡 Prompt Tips")
+    st.markdown("### 💡 Prompt Guide")
 
-    st.markdown(
-        """
-        **Describe:**
-        
-        • Subject  
-        • Environment  
-        • Lighting  
-        • Camera angle  
-        • Art style  
-        • Mood  
-        • Colors
-        
-        **Example:**
-        
-        `A futuristic city at sunset, cinematic lighting, 
-        flying cars, ultra detailed, realistic photography`
-        """
-    )
+    st.markdown("""
+    Include these details in your prompt:
+
+    - **Subject:** What should appear?
+    - **Environment:** Where is it?
+    - **Lighting:** Bright, soft or cinematic?
+    - **Style:** Realistic, 3D or illustration?
+    - **Colors:** Which colors should dominate?
+    - **Mood:** What feeling should the image have?
+    """)
 
     st.divider()
 
-    st.caption("Powered by Google Gemini")
+    st.caption("Model: FLUX.1 Schnell")
+    st.caption("Provider: Cloudflare Workers AI")
 
 
-# =========================================================
-# HERO SECTION
-# =========================================================
+# =====================================================
+# HEADER
+# =====================================================
 
-st.markdown(
-    """
-    <div class="hero">
-        <div class="hero-title">PixelForge AI</div>
-        <div class="hero-subtitle">
-            Turn your imagination into stunning AI-generated images.
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# =========================================================
-# MAIN LAYOUT
-# =========================================================
-
-left_column, right_column = st.columns(
-    [1, 1],
-    gap="large"
-)
+st.markdown("""
+<div class="hero">
+    <h1>PixelForge AI</h1>
+    <p>
+        Transform your imagination into stunning AI-generated images.
+        <br>
+        Write a prompt, generate your image and download it.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 
-# =========================================================
-# PROMPT SECTION
-# =========================================================
+# =====================================================
+# MAIN COLUMNS
+# =====================================================
 
-with left_column:
+left, right = st.columns([1, 1], gap="large")
 
-    st.markdown(
-        """
-        <div class="card">
-            <div class="card-title">✨ Create Your Image</div>
-        """,
-        unsafe_allow_html=True
-    )
+
+# =====================================================
+# PROMPT INPUT
+# =====================================================
+
+with left:
+
+    st.markdown("""
+    <div class="panel">
+        <div class="panel-title">✨ Create Your Image</div>
+    """, unsafe_allow_html=True)
 
     prompt = st.text_area(
-        "Image Prompt",
-        height=190,
+        "Describe your image",
         placeholder=(
-            "Describe the image you want...\n\n"
             "Example: A beautiful futuristic city at sunset, "
-            "cinematic lighting, glowing skyscrapers, flying cars, "
-            "ultra detailed, photorealistic."
+            "glowing skyscrapers, cinematic lighting, "
+            "realistic photography, ultra detailed..."
         ),
-        label_visibility="collapsed"
+        height=210,
+        max_chars=2048
     )
 
-    st.markdown(
-        """
-        <div class="small-text">
-        Be specific for better results. Describe the subject,
-        environment, lighting, style and mood.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <p class="hint">
+    Write a detailed description to get better image results.
+    Maximum prompt length: 2048 characters.
+    </p>
+    """, unsafe_allow_html=True)
 
-    st.write("")
-
-    generate_button = st.button(
+    generate = st.button(
         "🚀 Generate Image",
         use_container_width=True
     )
@@ -303,172 +234,187 @@ with left_column:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# =========================================================
-# RESULT SECTION
-# =========================================================
+# =====================================================
+# IMAGE GENERATION FUNCTION
+# =====================================================
 
-with right_column:
+def generate_image(prompt_text, generation_steps):
 
-    st.markdown(
-        """
-        <div class="card">
-            <div class="card-title">🖼️ Generated Image</div>
-        """,
-        unsafe_allow_html=True
+    account_id = st.secrets["CLOUDFLARE_ACCOUNT_ID"]
+    api_token = st.secrets["CLOUDFLARE_API_TOKEN"]
+
+    model = "@cf/black-forest-labs/flux-1-schnell"
+
+    url = (
+        f"https://api.cloudflare.com/client/v4/accounts/"
+        f"{account_id}/ai/run/{model}"
     )
 
-    if st.session_state.generated_image is not None:
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
 
-        st.image(
-            st.session_state.generated_image,
-            use_container_width=True
-        )
+    payload = {
+        "prompt": prompt_text,
+        "steps": generation_steps
+    }
 
-        # Prepare image for download
-        image_bytes = io.BytesIO()
+    response = requests.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=180
+    )
 
-        st.session_state.generated_image.save(
-            image_bytes,
-            format="PNG"
-        )
+    if not response.ok:
+        try:
+            error_data = response.json()
+            raise RuntimeError(str(error_data))
+        except ValueError:
+            response.raise_for_status()
 
-        image_bytes.seek(0)
+    content_type = response.headers.get("Content-Type", "")
 
-        st.download_button(
-            label="⬇️ Download Image",
-            data=image_bytes,
-            file_name="pixelforge_ai_image.png",
-            mime="image/png",
-            use_container_width=True
-        )
-
+    if "image/" in content_type:
+        image_bytes = response.content
     else:
+        result = response.json()
 
-        st.markdown(
-            """
-            <div style="
-                height: 380px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
-                color: #777785;
-                border: 1px dashed #303040;
-                border-radius: 15px;
-                background: rgba(10,10,16,0.5);
-            ">
-                <div>
-                    <div style="font-size: 55px;">🎨</div>
-                    <div style="font-size: 18px; font-weight: 600;">
-                        Your generated image will appear here
-                    </div>
-                    <div style="font-size: 14px; margin-top: 8px;">
-                        Enter a prompt and click Generate Image
-                    </div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        if not result.get("success", True):
+            raise RuntimeError(str(result.get("errors", result)))
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        image_base64 = result.get("result", {}).get("image")
+
+        if not image_base64:
+            raise RuntimeError(
+                "The API did not return an image. Please try again."
+            )
+
+        image_bytes = base64.b64decode(image_base64)
+
+    image = Image.open(io.BytesIO(image_bytes))
+    image.load()
+
+    return image.convert("RGB")
 
 
-# =========================================================
-# IMAGE GENERATION
-# =========================================================
+# =====================================================
+# GENERATE IMAGE
+# =====================================================
 
-if generate_button:
+if generate:
 
     if not prompt.strip():
+        st.warning("Please enter an image description first.")
 
-        st.warning("⚠️ Please enter a prompt first.")
+    elif len(prompt.strip()) > 2048:
+        st.warning("Your prompt must be 2048 characters or less.")
 
     else:
 
         try:
+            with st.spinner(
+                "🎨 FLUX AI is creating your image... Please wait."
+            ):
 
-            # Get API key from Streamlit Secrets
-            api_key = st.secrets["GEMINI_API_KEY"]
-
-            # Create Gemini client
-            client = genai.Client(
-                api_key=api_key
-            )
-
-            st.session_state.last_prompt = prompt
-
-            with st.spinner("🎨 Creating your image..."):
-
-                response = client.models.generate_content(
-                    model="gemini-3.1-flash-image",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["IMAGE"],
-                        image_config=types.ImageConfig(
-                            aspect_ratio=aspect_ratio,
-                            image_size=image_size
-                        )
-                    )
+                image = generate_image(
+                    prompt.strip(),
+                    steps
                 )
 
-                generated_image = None
+                st.session_state.generated_image = image
+                st.session_state.last_prompt = prompt.strip()
 
-                # Find image returned by Gemini
-                for part in response.parts:
+            st.success("Your image was generated successfully!")
 
-                    if part.inline_data is not None:
+        except KeyError as e:
+            st.error("API credentials are missing from Streamlit Secrets.")
+            st.code(str(e))
 
-                        generated_image = part.as_image()
-                        break
+        except requests.exceptions.Timeout:
+            st.error("The generation request timed out. Please try again.")
 
-                if generated_image is None:
-
-                    st.error(
-                        "❌ Gemini did not return an image. "
-                        "Please try another prompt."
-                    )
-
-                else:
-
-                    st.session_state.generated_image = generated_image
-
-                    st.success(
-                        "✅ Your image has been generated!"
-                    )
-
-                    # Rerun so the generated image appears
-                    # in the result section
-                    st.rerun()
-
-        except KeyError:
-
-            st.error(
-                "❌ GEMINI_API_KEY is missing from Streamlit Secrets."
-            )
-
-            st.info(
-                "Add GEMINI_API_KEY to your Streamlit Secrets."
-            )
+        except requests.exceptions.RequestException as e:
+            st.error("Cloudflare API connection failed.")
+            st.code(str(e))
 
         except Exception as e:
-
-            st.error(
-                "❌ Image generation failed."
-            )
-
+            st.error("Image generation failed.")
             st.code(str(e))
 
 
-# =========================================================
-# FOOTER
-# =========================================================
+# =====================================================
+# GENERATED IMAGE PREVIEW
+# =====================================================
 
-st.markdown(
-    """
-    <div class="footer">
-        PixelForge AI • Text-to-Image Generator • Powered by Gemini
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+with right:
+
+    st.markdown("""
+    <div class="panel">
+        <div class="panel-title">🖼️ Your Generated Image</div>
+    """, unsafe_allow_html=True)
+
+    if st.session_state.generated_image is not None:
+
+        image = st.session_state.generated_image
+
+        st.image(
+            image,
+            use_container_width=True
+        )
+
+        image_buffer = io.BytesIO()
+        image.save(image_buffer, format="PNG")
+        image_buffer.seek(0)
+
+        st.download_button(
+            label="⬇️ Download Image",
+            data=image_buffer,
+            file_name="pixelforge_generated_image.png",
+            mime="image/png",
+            use_container_width=True
+        )
+
+        st.caption(
+            "Prompt: " + st.session_state.last_prompt
+        )
+
+    else:
+
+        st.markdown("""
+        <div style="
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 1px dashed #41415a;
+            border-radius: 14px;
+            background: #10101a;
+            color: #9999ad;
+        ">
+            <div>
+                <div style="font-size: 65px;">🎨</div>
+                <h3 style="color:white;">
+                    Your image will appear here
+                </h3>
+                <p>Enter a prompt and click Generate Image.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# =====================================================
+# FOOTER
+# =====================================================
+
+st.markdown("""
+<div class="footer">
+    PixelForge AI | Powered by FLUX.1 Schnell
+    <br>
+    Built with Python and Streamlit
+</div>
+""", unsafe_allow_html=True)
